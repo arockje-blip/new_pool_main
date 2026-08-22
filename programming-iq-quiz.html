@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Programming IQ Quiz</title>
+<style>
+  :root { --bg:#0d1117; --card:#161b22; --accent:#58a6ff; --good:#3fb950; --bad:#f85149; --text:#e6edf3; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
+  .wrap { max-width:640px; width:100%; }
+  h1 { text-align:center; font-size:1.6rem; margin-bottom:4px; }
+  .sub { text-align:center; color:#8b949e; margin-bottom:24px; font-size:.9rem; }
+  .card { background:var(--card); border:1px solid #30363d; border-radius:12px; padding:24px; }
+  .progress { font-size:.85rem; color:#8b949e; margin-bottom:10px; }
+  .qtext { font-size:1.15rem; margin-bottom:18px; line-height:1.4; }
+  .opts { display:grid; gap:10px; }
+  .opt { background:#21262d; border:1px solid #30363d; border-radius:8px; padding:12px 14px; cursor:pointer; text-align:left; color:var(--text); font-size:.98rem; transition:.15s; }
+  .opt:hover { border-color:var(--accent); }
+  .opt.correct { background:rgba(63,185,80,.15); border-color:var(--good); }
+  .opt.wrong { background:rgba(248,81,73,.15); border-color:var(--bad); }
+  .opt[disabled] { cursor:default; }
+  .footer { display:flex; justify-content:space-between; align-items:center; margin-top:18px; }
+  #next { background:var(--accent); border:none; color:#0d1117; font-weight:600; padding:9px 18px; border-radius:8px; cursor:pointer; opacity:0; pointer-events:none; transition:.15s; }
+  #next.show { opacity:1; pointer-events:auto; }
+  #score { font-size:.9rem; color:#8b949e; }
+  .result { text-align:center; }
+  .result .big { font-size:2.4rem; font-weight:700; color:var(--accent); margin:10px 0; }
+  #restart { background:var(--accent); border:none; color:#0d1117; font-weight:600; padding:10px 22px; border-radius:8px; cursor:pointer; margin-top:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Programming IQ Quiz</h1>
+  <div class="sub">20 quick logic &amp; fundamentals questions — separate from the clan pool game</div>
+  <div class="card" id="card"></div>
+</div>
+<script>
+const QUESTIONS = [
+  { q: "What will `2 + '2'` evaluate to in JavaScript?", opts: ["4", "'22'", "NaN", "Error"], correct: 1 },
+  { q: "Which data structure works on First-In-First-Out (FIFO) order?", opts: ["Stack", "Queue", "Tree", "Heap"], correct: 1 },
+  { q: "What is the time complexity of binary search on a sorted array?", opts: ["O(n)", "O(n log n)", "O(log n)", "O(1)"], correct: 2 },
+  { q: "In most languages, what does `i++` do compared to `++i` when used alone in a statement?", opts: ["Nothing different", "i++ increments after using the value, ++i before", "++i is invalid syntax", "i++ only works on floats"], correct: 1 },
+  { q: "Which of these is NOT a primitive data type in most typed languages?", opts: ["int", "boolean", "array", "char"], correct: 2 },
+  { q: "What does 'recursion' mean in programming?", opts: ["A loop that never ends", "A function calling itself", "A variable declared twice", "An error in compilation"], correct: 1 },
+  { q: "What is the output of `5 % 2` in most programming languages?", opts: ["2.5", "1", "0", "10"], correct: 1 },
+  { q: "Which sorting algorithm has the best average-case time complexity: O(n log n)?", opts: ["Bubble Sort", "Merge Sort", "Selection Sort", "Insertion Sort"], correct: 1 },
+  { q: "What does 'DRY' stand for in software engineering principles?", opts: ["Do Repeat Yourself", "Don't Repeat Yourself", "Data Retrieval Yield", "Dynamic Runtime Yield"], correct: 1 },
+  { q: "In a binary number, what does the digit '1011' represent in decimal?", opts: ["9", "10", "11", "13"], correct: 2 },
+  { q: "What keyword is commonly used to define a constant value that can't be reassigned?", opts: ["var", "let", "const", "static"], correct: 2 },
+  { q: "Which logical operator returns true only if BOTH conditions are true?", opts: ["OR", "AND", "NOT", "XOR"], correct: 1 },
+  { q: "What is a 'null pointer' or 'null reference'?", opts: ["A pointer to the first array element", "A reference that points to nothing", "A pointer with maximum memory address", "A special type of loop"], correct: 1 },
+  { q: "What does API stand for?", opts: ["Application Programming Interface", "Automated Program Instruction", "Application Process Integration", "Advanced Protocol Interface"], correct: 0 },
+  { q: "Which of these correctly describes a 'variable scope'?", opts: ["The color of the variable in an IDE", "The region of code where a variable can be accessed", "The maximum value a variable can hold", "The number of times a variable changes"], correct: 1 },
+  { q: "What will this pseudocode print? `for i = 1 to 3: print(i * 2)`", opts: ["1 2 3", "2 4 6", "2 4 6 8", "1 4 9"], correct: 1 },
+  { q: "What is the main difference between a 'compiler' and an 'interpreter'?", opts: ["No difference, same thing", "Compiler translates all code before running; interpreter runs line by line", "Interpreter is always faster", "Compiler only works with Python"], correct: 1 },
+  { q: "In Boolean logic, what is the negation (NOT) of `true`?", opts: ["true", "false", "1", "undefined"], correct: 1 },
+  { q: "What does it mean when code has a 'bug'?", opts: ["The program runs faster than expected", "An error causing unexpected behavior", "A missing semicolon that doesn't affect output", "A feature added intentionally"], correct: 1 },
+  { q: "Which of the following best describes an 'algorithm'?", opts: ["A programming language", "A step-by-step procedure to solve a problem", "A type of database", "A hardware component"], correct: 1 }
+];
+
+function shuffle(arr) {
+  const c = [...arr];
+  for (let i = c.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [c[i], c[j]] = [c[j], c[i]];
+  }
+  return c;
+}
+
+// Randomize question order and option order each time, no repeats within a run.
+const deck = shuffle(QUESTIONS).map(item => {
+  const correctText = item.opts[item.correct];
+  const opts = shuffle(item.opts);
+  return { q: item.q, opts, correct: opts.indexOf(correctText) };
+});
+
+let idx = 0;
+let score = 0;
+const card = document.getElementById('card');
+
+function renderQuestion() {
+  const item = deck[idx];
+  card.innerHTML = `
+    <div class="progress">Question ${idx + 1} of ${deck.length} &nbsp;|&nbsp; Score: ${score}</div>
+    <div class="qtext">${item.q}</div>
+    <div class="opts" id="opts"></div>
+    <div class="footer">
+      <span id="score"></span>
+      <button id="next">Next →</button>
+    </div>
+  `;
+  const optsEl = document.getElementById('opts');
+  item.opts.forEach((text, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.textContent = text;
+    btn.addEventListener('click', () => selectAnswer(i, item));
+    optsEl.appendChild(btn);
+  });
+  document.getElementById('next').addEventListener('click', nextQuestion);
+}
+
+function selectAnswer(choice, item) {
+  const buttons = document.querySelectorAll('#opts .opt');
+  buttons.forEach((b, i) => {
+    b.disabled = true;
+    if (i === item.correct) b.classList.add('correct');
+    else if (i === choice) b.classList.add('wrong');
+  });
+  if (choice === item.correct) score++;
+  document.getElementById('next').classList.add('show');
+}
+
+function nextQuestion() {
+  idx++;
+  if (idx >= deck.length) {
+    renderResult();
+  } else {
+    renderQuestion();
+  }
+}
+
+function renderResult() {
+  const pct = Math.round((score / deck.length) * 100);
+  card.innerHTML = `
+    <div class="result">
+      <div class="progress">Quiz complete</div>
+      <div class="big">${score} / ${deck.length}</div>
+      <div>${pct}% correct</div>
+      <button id="restart">Try Again</button>
+    </div>
+  `;
+  document.getElementById('restart').addEventListener('click', () => window.location.reload());
+}
+
+renderQuestion();
+</script>
+</body>
+</html>

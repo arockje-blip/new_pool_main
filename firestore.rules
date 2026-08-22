@@ -1,0 +1,32 @@
+rules_version = '2';
+
+// ══════════════════════════════════════════════════
+//  This project has no Firebase Auth, so these rules
+//  allow open read/write on just the two collections
+//  the game actually uses. Everything else stays denied.
+//
+//  ⚠️ IMPORTANT: this file only takes effect once you
+//  deploy it — either via:
+//    firebase deploy --only firestore:rules
+//  or by pasting its contents into:
+//    Firebase Console → Firestore Database → Rules → Publish
+//
+//  If a fresh Firestore project was created in "production
+//  mode", the DEFAULT rules deny all reads/writes from any
+//  device, which — combined with the app not calling
+//  Firestore at all before this fix — is why the leaderboard
+//  never left your laptop.
+// ══════════════════════════════════════════════════
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /leaderboard/{clanKey} {
+      allow read, write: if true;
+    }
+    match /players/{playerId} {
+      allow read, write: if true;
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

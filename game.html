@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>8 Ball Pool — Clan Quest</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  background:#0a0a0a;font-family:'Arial',sans-serif;
+  -webkit-user-select:none;user-select:none;
+}
+
+/* ── SWITCH BAR ── */
+#modebar{
+  position:fixed;top:0;left:0;right:0;z-index:200;height:30px;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  background:rgba(0,0,0,0.97);border-bottom:1px solid #222;
+}
+.mlabel{font-size:0.65rem;letter-spacing:0.1em;color:#555;cursor:pointer;transition:color .2s;}
+.mlabel.active{color:#f0c040;}
+#tog{
+  position:relative;width:42px;height:20px;
+  background:#222;border:1.5px solid #444;border-radius:10px;
+  cursor:pointer;transition:all .25s;flex-shrink:0;
+}
+#tog.mob{background:#162030;border-color:#2a4a6a;}
+#tog::after{
+  content:'';position:absolute;top:2px;left:2px;
+  width:14px;height:14px;border-radius:50%;
+  background:#f0c040;transition:transform .25s;
+}
+#tog.mob::after{transform:translateX(22px);background:#6a9adf;}
+
+/* ── HUD ── */
+#hud{
+  position:fixed;top:30px;left:0;right:0;z-index:50;height:50px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:4px 8px;
+  background:linear-gradient(180deg,rgba(0,0,0,.97),rgba(0,0,0,.75));
+  border-bottom:1px solid #222;gap:6px;
+}
+.pcard{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.04);border:1.5px solid #333;border-radius:9px;
+  padding:3px 8px;flex:1;max-width:170px;
+  transition:border-color .3s,background .3s;
+}
+.pcard.active{border-color:#f0c040;background:rgba(240,192,64,.1);}
+.pcard.foul-turn{border-color:#ff4444;background:rgba(255,68,68,.08);}
+.pav{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;background:#222;border:2px solid #444;flex-shrink:0;}
+.pinf{flex:1;min-width:0;}
+.pname{font-size:.6rem;color:#999;letter-spacing:.05em;}
+.pgrp{font-size:.65rem;font-weight:bold;color:#f0c040;min-height:13px;}
+.brow{display:flex;gap:2px;flex-wrap:wrap;margin-top:1px;min-height:8px;}
+.bdot{width:7px;height:7px;border-radius:50%;border:1px solid rgba(0,0,0,.3);flex-shrink:0;}
+.skip-badge{font-size:.55rem;color:#ff4444;font-weight:bold;min-height:10px;}
+
+#chud{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;}
+#tlabel{font-size:.56rem;color:#666;letter-spacing:.12em;text-transform:uppercase;}
+#tname{font-size:.78rem;font-weight:bold;color:#f0c040;text-shadow:0 0 8px rgba(240,192,64,.4);}
+#twrap{display:flex;align-items:center;gap:4px;}
+#tbarbg{width:68px;height:5px;background:#1a1a1a;border-radius:3px;overflow:hidden;}
+#tbar{height:100%;width:100%;border-radius:3px;transition:width .1s linear;}
+#ttxt{font-size:.58rem;color:#666;min-width:20px;}
+
+/* ── MSG ── */
+#msgbar{
+  position:fixed;top:80px;left:50%;transform:translateX(-50%);
+  z-index:60;font-size:.75rem;color:#fff;
+  background:rgba(0,0,0,.82);border:1px solid rgba(240,192,64,.3);
+  border-radius:20px;padding:4px 14px;white-space:nowrap;pointer-events:none;
+  max-width:90vw;overflow:hidden;text-overflow:ellipsis;
+}
+#msgbar.foul{border-color:rgba(255,68,68,.6);color:#ff8888;}
+
+/* ── GAME AREA ── */
+#gwrap{
+  position:fixed;left:0;right:0;bottom:34px;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+canvas{display:block;touch-action:none;}
+
+/* ── POWER HUD ── */
+#phud{
+  position:fixed;bottom:0;left:0;right:0;z-index:50;height:34px;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  padding:4px 12px 5px;
+  background:linear-gradient(0deg,rgba(0,0,0,.97),rgba(0,0,0,.7));
+  border-top:1px solid #222;
+}
+#plabel{font-size:.58rem;color:#555;letter-spacing:.1em;text-transform:uppercase;}
+#pbarbg{flex:1;max-width:180px;height:9px;background:#111;border:1px solid #2a2a2a;border-radius:5px;overflow:hidden;}
+#pbar{height:100%;width:0%;background:linear-gradient(90deg,#22cc44,#ffcc00,#ff2200);border-radius:5px;transition:width .04s;}
+#ppct{font-size:.6rem;color:#777;min-width:26px;text-align:right;}
+#ngbtn{
+  background:#111;border:1.5px solid #f0c040;color:#f0c040;
+  padding:3px 11px;border-radius:20px;font-size:.65rem;
+  letter-spacing:.08em;cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+#ngbtn:hover,#ngbtn:active{background:#f0c040;color:#000;}
+
+/* ── WIN OVERLAY ── */
+#winov{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.87);align-items:center;justify-content:center;flex-direction:column;}
+#winov.show{display:flex;}
+#winbox{background:linear-gradient(135deg,#1a1a08,#0d0d00);border:2px solid #f0c040;border-radius:18px;padding:26px 34px;text-align:center;box-shadow:0 0 60px rgba(240,192,64,.25);}
+#winemoji{font-size:2.6rem;margin-bottom:6px;}
+#wintxt{font-size:1.25rem;font-weight:bold;color:#f0c040;margin-bottom:4px;}
+#winsub{font-size:.8rem;color:#aaa;margin-bottom:16px;}
+#winbtn{background:#f0c040;color:#000;border:none;padding:8px 26px;border-radius:25px;font-size:.9rem;font-weight:bold;cursor:pointer;}
+#winbtn:hover{opacity:.9;}
+
+/* ── QUIZ MODAL ── */
+#quizov{display:none;position:fixed;inset:0;z-index:250;background:rgba(0,0,0,.92);align-items:center;justify-content:center;flex-direction:column;}
+#quizov.show{display:flex;}
+#quizbox{
+  background:linear-gradient(135deg,#1a1a2a,#0d0d1a);
+  border:2px solid #6a9aff;border-radius:16px;
+  padding:24px 32px;text-align:center;
+  box-shadow:0 0 50px rgba(106,154,255,.4);
+  max-width:500px;min-width:320px;
+}
+#quiztit{font-size:.7rem;color:#6a9aff;letter-spacing:.15em;text-transform:uppercase;margin-bottom:8px;}
+#quizq{font-size:1.1rem;font-weight:bold;color:#fff;margin-bottom:16px;line-height:1.4;}
+#quizans{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.ans-btn{
+  background:#1a1a2a;border:1.5px solid #444;color:#ddd;
+  padding:10px 16px;border-radius:10px;font-size:.85rem;
+  cursor:pointer;transition:all .2s;text-align:left;
+}
+.ans-btn:hover{border-color:#6a9aff;background:#2a2a3a;color:#6a9aff;}
+.ans-btn.selected{border-color:#6a9aff;background:#6a9aff;color:#000;font-weight:bold;}
+.ans-btn.correct{border-color:#44dd44;background:#44dd44;color:#000;}
+.ans-btn.wrong{border-color:#dd4444;background:#dd4444;color:#fff;}
+.ans-btn:disabled{opacity:.5;cursor:not-allowed;}
+#qtimer{font-size:.7rem;color:#888;margin-top:8px;}
+#qbar-bg{height:4px;background:#222;border-radius:3px;margin-top:6px;overflow:hidden;}
+#qbar{height:100%;width:100%;background:linear-gradient(90deg,#6a9aff,#9adfff);border-radius:3px;transition:width .1s linear;}
+
+/* ── CLAN LOGIN OVERLAY ── */
+#loginov{display:none;position:fixed;inset:0;z-index:320;background:rgba(0,0,0,.9);align-items:center;justify-content:center;}
+#loginov.show{display:flex;}
+#loginbox{
+  width:min(560px,92vw);
+  background:linear-gradient(145deg,#10172a,#0b0f1a);
+  border:1px solid #2f4064;border-radius:16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.55);
+  padding:18px;
+}
+#login-title{font-size:.8rem;letter-spacing:.14em;color:#8fb4ff;text-transform:uppercase;margin-bottom:10px;}
+#clan-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.clan-btn{
+  border:1px solid #334869;background:#132038;color:#e9f2ff;
+  border-radius:10px;padding:8px 10px;text-align:left;cursor:pointer;
+  display:flex;align-items:center;gap:9px;
+}
+.clan-btn.active{border-color:#6a9aff;background:#1a2f55;box-shadow:0 0 0 1px rgba(106,154,255,.3) inset;}
+.clan-logo{
+  width:30px;height:30px;border-radius:8px;object-fit:cover;flex:none;
+  border:1px solid rgba(255,255,255,.15);background:#0e1728;
+}
+.clan-badge-fallback{
+  width:30px;height:30px;border-radius:8px;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  background:#0e1728;border:1px solid rgba(255,255,255,.15);font-size:1rem;
+}
+#pw-wrap{display:grid;gap:8px;}
+#pw-in{
+  width:100%;border:1px solid #334869;background:#0e1728;color:#fff;
+  border-radius:9px;padding:10px 12px;font-size:.9rem;
+}
+#pw-actions{display:flex;justify-content:flex-end;gap:8px;}
+.pw-btn{border:none;border-radius:8px;padding:8px 13px;cursor:pointer;font-weight:bold;}
+#pw-ok{background:#7fb3ff;color:#041225;}
+#pw-cancel{background:#3c4b66;color:#d9e7ff;}
+#pw-status{min-height:18px;font-size:.75rem;color:#9ab3da;}
+
+/* ── ADMIN PORTAL ── */
+#admin-btn{
+  background:#0f2038;border:1.5px solid #6a9aff;color:#9ec0ff;
+  padding:3px 11px;border-radius:20px;font-size:.65rem;letter-spacing:.08em;cursor:pointer;white-space:nowrap;
+}
+#admin-btn:hover{background:#6a9aff;color:#000;}
+#adminov{display:none;position:fixed;inset:0;z-index:330;background:rgba(0,0,0,.9);align-items:center;justify-content:center;}
+#adminov.show{display:flex;}
+#adminbox{
+  width:min(900px,95vw);max-height:88vh;overflow:auto;
+  background:linear-gradient(145deg,#0f1728,#0a101c);
+  border:1px solid #314664;border-radius:16px;padding:16px;
+}
+#admin-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;}
+#admin-title{font-size:.8rem;color:#8fb4ff;letter-spacing:.14em;text-transform:uppercase;}
+#admin-close{background:#33435e;color:#dbe8ff;border:none;border-radius:8px;padding:7px 10px;cursor:pointer;}
+#admin-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px;}
+.admin-card{background:#121d33;border:1px solid #2f4464;border-radius:10px;padding:8px;}
+.admin-label{font-size:.62rem;color:#8ba3c5;letter-spacing:.08em;text-transform:uppercase;}
+.admin-val{font-size:1rem;color:#fff;font-weight:bold;}
+#admin-table{width:100%;border-collapse:collapse;font-size:.73rem;}
+#admin-table th,#admin-table td{border-bottom:1px solid #25354f;padding:7px 6px;text-align:left;}
+#admin-table th{color:#8fb4ff;font-weight:bold;}
+#tube-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.tube-card{background:#111b2f;border:1px solid #2f4464;border-radius:10px;padding:8px;}
+.tube-title{font-size:.66rem;color:#8ba3c5;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+.tube-row{display:flex;flex-wrap:wrap;gap:4px;min-height:22px;}
+.tube-ball{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,.35);display:inline-block;}
+
+@media (max-width:800px){
+  #admin-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  #tube-wrap{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div id="modebar">
+  <span class="mlabel active" id="lbl-lap">💻 LAPTOP</span>
+  <div id="tog"></div>
+  <span class="mlabel" id="lbl-mob">📱 MOBILE</span>
+</div>
+
+<div id="hud">
+  <div class="pcard active" id="card-p">
+    <div class="pav" id="pav-p">🧑</div>
+    <div class="pinf">
+      <div class="pname" id="pname-p">YOU</div>
+      <div class="pgrp" id="grp-p">—</div>
+      <div class="brow" id="br-p"></div>
+      <div class="skip-badge" id="skip-p"></div>
+    </div>
+  </div>
+  <div id="chud">
+    <div id="tlabel">TURN</div>
+    <div id="tname">YOU</div>
+    <div id="twrap">
+      <div id="tbarbg"><div id="tbar"></div></div>
+      <div id="ttxt">60</div>
+    </div>
+  </div>
+  <div class="pcard" id="card-c">
+    <div class="pav" id="pav-c">🤖</div>
+    <div class="pinf">
+      <div class="pname" id="pname-c">CPU</div>
+      <div class="pgrp" id="grp-c">—</div>
+      <div class="brow" id="br-c"></div>
+      <div class="skip-badge" id="skip-c"></div>
+    </div>
+  </div>
+</div>
+
+<div id="msgbar">Tap anywhere on the table, drag to aim & release to shoot!</div>
+<div id="gwrap"><canvas id="c"></canvas></div>
+
+<div id="phud">
+  <span id="plabel">POWER</span>
+  <div id="pbarbg"><div id="pbar"></div></div>
+  <span id="ppct">0%</span>
+  <button id="admin-btn">ADMIN</button>
+  <button id="ngbtn">NEW GAME</button>
+</div>
+
+<!-- ADMIN PORTAL -->
+<div id="adminov">
+  <div id="adminbox">
+    <div id="admin-head">
+      <div id="admin-title">Clan Leaderboard Portal</div>
+      <button id="admin-close">Close</button>
+    </div>
+    <div id="admin-grid">
+      <div class="admin-card"><div class="admin-label">Current Clan</div><div class="admin-val" id="admin-current">-</div></div>
+      <div class="admin-card"><div class="admin-label">CPU Clan</div><div class="admin-val" id="admin-opp">-</div></div>
+      <div class="admin-card"><div class="admin-label">Player Pooled</div><div class="admin-val" id="admin-player-pool">0</div></div>
+      <div class="admin-card"><div class="admin-label">CPU Pooled</div><div class="admin-val" id="admin-cpu-pool">0</div></div>
+    </div>
+    <table id="admin-table">
+      <thead>
+        <tr>
+          <th>Clan</th>
+          <th>Games</th>
+          <th>Wins</th>
+          <th>Losses</th>
+          <th>Player Pooled</th>
+          <th>CPU Pooled</th>
+          <th>Total Pooled</th>
+        </tr>
+      </thead>
+      <tbody id="admin-body"></tbody>
+    </table>
+    <div id="tube-wrap">
+      <div class="tube-card">
+        <div class="tube-title">Player Drop Tube (This Match)</div>
+        <div class="tube-row" id="tube-player"></div>
+      </div>
+      <div class="tube-card">
+        <div class="tube-title">CPU Drop Tube (This Match)</div>
+        <div class="tube-row" id="tube-cpu"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CLAN LOGIN -->
+<div id="loginov">
+  <div id="loginbox">
+    <div id="login-title">Clan Access</div>
+    <div id="clan-grid"></div>
+    <div id="pw-wrap">
+      <input id="pw-in" type="password" placeholder="Enter clan password" autocomplete="off" />
+      <div id="pw-actions">
+        <button class="pw-btn" id="pw-cancel">Cancel</button>
+        <button class="pw-btn" id="pw-ok">Confirm</button>
+      </div>
+      <div id="pw-status"></div>
+    </div>
+  </div>
+</div>
+
+<!-- QUIZ MODAL -->
+<div id="quizov">
+  <div id="quizbox">
+    <div id="quiztit">QUEST CHALLENGE</div>
+    <div id="quizq">Question text here</div>
+    <div id="quizans"></div>
+    <div id="qtimer">30s</div>
+    <div id="qbar-bg"><div id="qbar"></div></div>
+  </div>
+</div>
+
+<!-- WIN OVERLAY -->
+<div id="winov">
+  <div id="winbox">
+    <div id="winemoji">🏆</div>
+    <div id="wintxt">YOU WIN!</div>
+    <div id="winsub">8-ball pocketed!</div>
+    <button id="winbtn">PLAY AGAIN</button>
+  </div>
+</div>
+
+<script type="module" src="js/game.js"></script>
+</body>
+</html>
