@@ -22,8 +22,8 @@
 // ══════════════════════════════════════════════════
 import { CLANS, ensureLeaderboardDocs, subscribeLeaderboard, resetLeaderboard } from './core.js';
 
-const ADMIN_USER = 'AJ_encoded';
-const ADMIN_PASS = '19782004';
+const ADMIN_USER = 'AJ-SIVA';
+const ADMIN_PASS = '0406';
 const SESSION_KEY = 'billiards_admin_session_v1';
 
 function createEmptyClanStats() {
