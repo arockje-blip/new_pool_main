@@ -20,7 +20,7 @@
 //  anywhere — not just the one browser it happens to be
 //  open in.
 // ══════════════════════════════════════════════════
-import { CLANS, ensureLeaderboardDocs, subscribeLeaderboard } from './core.js';
+import { CLANS, ensureLeaderboardDocs, subscribeLeaderboard, resetLeaderboard } from './core.js';
 
 const ADMIN_USER = 'AJ_encoded';
 const ADMIN_PASS = '19782004';
@@ -128,11 +128,36 @@ function signOut() {
   showLogin();
 }
 
+async function handleReset() {
+  const sure = confirm(
+    'Reset the tournament?\n\nThis wipes games, wins, losses and balls pooled for ALL clans back to zero. This cannot be undone.'
+  );
+  if (!sure) return;
+
+  const typed = prompt('Type RESET to confirm.');
+  if (typed !== 'RESET') return;
+
+  const btn = document.getElementById('admin-reset');
+  btn.disabled = true;
+  btn.textContent = 'Resetting…';
+  try {
+    await resetLeaderboard();
+    btn.textContent = 'Reset Tournament';
+  } catch (err) {
+    console.error('Failed to reset leaderboard:', err);
+    alert('Reset failed — check your connection/Firebase config and try again.');
+    btn.textContent = 'Reset Tournament';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 document.getElementById('admin-login-btn').addEventListener('click', tryLogin);
 document.getElementById('admin-pass').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') tryLogin();
 });
 document.getElementById('admin-signout').addEventListener('click', signOut);
+document.getElementById('admin-reset').addEventListener('click', handleReset);
 
 // Restore an existing admin session on refresh.
 if (sessionStorage.getItem(SESSION_KEY) === '1') {

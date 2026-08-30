@@ -195,3 +195,14 @@ export async function setPlayerOnlineStatus(online) {
   const ref = doc(db, PLAYERS_COL, raw.playerId);
   await updateDoc(ref, { online, lastSeen: serverTimestamp() }).catch(() => {});
 }
+
+// ── Wipe every clan's leaderboard doc back to zero (end of tournament) ──
+// Does NOT touch the `players` collection (login/session records) —
+// only the aggregate stats shown on the leaderboard/admin dashboard.
+export async function resetLeaderboard() {
+  const jobs = Object.keys(CLANS).map((clanKey) => {
+    const ref = doc(db, LEADERBOARD_COL, clanKey);
+    return setDoc(ref, { clan: clanKey, ...createEmptyClanStats() });
+  });
+  await Promise.all(jobs);
+}
